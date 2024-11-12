@@ -1,7 +1,8 @@
 const channelId = '2696895';
-const apiKey = 'VTICFT6M5B9JJW0L';
+const readApiKey = 'VTICFT6M5B9JJW0L';
+const writeApiKey = 'QW797Z0YCTEX3IWG'; // Replace with your ThingSpeak Write API Key
 
-const apiUrl = `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${apiKey}&results=10`;
+const apiUrl = `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${readApiKey}&results=10`;
 
 const speedField = 1;
 const voltageField = 3;
@@ -18,10 +19,12 @@ async function fetchThingSpeakData() {
         const latestFeed = feeds[feeds.length - 1];
         console.log(latestFeed);
 
+        // Update the latest values on the UI
         document.getElementById('speedValue').innerText = latestFeed[`field${speedField}`] || 'No data';
         document.getElementById('voltageValue').innerText = latestFeed[`field${voltageField}`] || 'No data';
         document.getElementById('angleValue').innerText = latestFeed[`field${angleField}`] || 'No data';
 
+        // Prepare data for the charts
         const timeStamps = feeds.map(feed => new Date(feed.created_at).toLocaleTimeString());
         const speedData = feeds.map(feed => feed[`field${speedField}`]);
         const voltageData = feeds.map(feed => feed[`field${voltageField}`]);
@@ -108,24 +111,30 @@ function sendAngle() {
         return;
     }
 
-    fetch('http://192.168.178.220/setAngle?angle=' + encodeURIComponent(angle), {
+    // Construct the ThingSpeak write API URL with the angle as a parameter for field2
+    const writeApiUrl = `https://api.thingspeak.com/update?api_key=${writeApiKey}&field2=${encodeURIComponent(angle)}`;
+
+    // Send the angle to ThingSpeak
+    fetch(writeApiUrl, {
         method: 'GET'
     })
     .then(response => {
         if (response.ok) {
-            alert('Angle set successfully');
+            alert('Angle set successfully on ThingSpeak as Target Position');
         } else {
-            alert('Failed to set angle');
+            alert('Failed to set angle on ThingSpeak');
         }
     })
     .catch(error => {
         console.error("Error:", error);
-        alert("Failed to connect to ESP32.");
+        alert("Failed to connect to ThingSpeak.");
     });
 }
 
+// Fetch data every 2 seconds
 setInterval(() => {
     fetchThingSpeakData();
 }, 2000);
 
+// Initial call to load data
 fetchThingSpeakData();
