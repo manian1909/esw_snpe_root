@@ -1,0 +1,145 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(to bottom right, #3a6073, #3a3f6b);
+    color: #fff;
+    animation: fadeIn 1s ease-in-out; /* Fade in effect for the page */
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+    animation: slideDown 1s ease-out; /* Slide down effect for container */
+}
+
+h1 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    animation: zoomIn 0.8s ease; /* Zoom in effect for header */
+}
+
+.content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    min-height: 200px;
+    margin: 15px;
+    width: 80%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    opacity: 0;
+    transform: translateY(20px); /* Initial state for animation */
+    animation: fadeInUp 0.8s forwards ease; /* Card fade and slide up */
+}
+
+h2 {
+    font-size: 1.5em;
+}
+
+p {
+    font-size: 1.2em;
+    margin: 10px 0;
+}
+
+.latest {
+    color: black;
+}
+
+canvas {
+    width: 100%;
+    height: 80%;
+    max-height: none;
+    transition: transform 0.3s ease-in-out; /* Smooth pop-out on hover */
+}
+
+canvas:hover {
+    transform: scale(1.05); /* Slight pop-out effect */
+}
+
+.angle-input-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+}
+
+#angleInput {
+    width: 80px; /* Enough for 5 digits */
+    padding: 5px;
+    margin-right: 10px;
+    border-radius: 5px;
+    border: 2px solid #3a6073;
+    text-align: center;
+}
+
+#setAngleBtn {
+    padding: 5px 15px;
+    border: none;
+    border-radius: 5px;
+    background-color: #3a6073;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+#setAngleBtn:hover {
+    background-color: #2a4a53;
+    transform: scale(1.05);
+}
+
+/* Keyframe animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes zoomIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
