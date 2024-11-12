@@ -3,9 +3,9 @@ const apiKey = 'VTICFT6M5B9JJW0L'; // Replace with your Read API Key
 
 const apiUrl = `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${apiKey}&results=10`;
 
-const speedField = 1; // Replace with the correct field number for speed
-const voltageField = 3; // Replace with the correct field number for voltage
-const angleField = 2; // Replace with the correct field number for current angle
+const speedField = 1; // Field number for speed
+const voltageField = 3; // Field number for voltage
+const angleField = 2; // Field number for current angle
 
 // Fetch ThingSpeak data
 async function fetchThingSpeakData() {
@@ -116,10 +116,8 @@ function sendAngle() {
         return;
     }
 
-    fetch('http://<ESP32_IP_ADDRESS>/setAngle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ angle: parseInt(angle) })
+    fetch('http://192.168.178.220/setAngle?angle=' + encodeURIComponent(angle), {
+        method: 'GET'
     })
     .then(response => {
         if (response.ok) {
@@ -133,7 +131,6 @@ function sendAngle() {
         alert("Failed to connect to ESP32.");
     });
 }
-
 
 // Fetch data every 2 seconds
 setInterval(() => {
