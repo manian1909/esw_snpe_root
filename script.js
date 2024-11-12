@@ -1,38 +1,32 @@
-const channelId = '2696895'; // Replace with your channel ID
-const apiKey = 'VTICFT6M5B9JJW0L'; // Replace with your Read API Key
+const channelId = '2696895';
+const apiKey = 'VTICFT6M5B9JJW0L';
 
 const apiUrl = `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${apiKey}&results=10`;
 
-const speedField = 1; // Field number for speed
-const voltageField = 3; // Field number for voltage
-const angleField = 2; // Field number for current angle
+const speedField = 1;
+const voltageField = 3;
+const angleField = 2;
 
-// Fetch ThingSpeak data
 async function fetchThingSpeakData() {
     try {
         const response = await fetch(apiUrl);
         const data = await response.json();
         const feeds = data.feeds;
 
-        // Log data to check what is being fetched
         console.log(feeds);
 
-        // Update latest values in the 'latest' divs
         const latestFeed = feeds[feeds.length - 1];
-        console.log(latestFeed); // Debugging log to check the latest feed values
+        console.log(latestFeed);
 
-        // Set latest values to the 'latest' divs, handle potential null or undefined values
         document.getElementById('speedValue').innerText = latestFeed[`field${speedField}`] || 'No data';
         document.getElementById('voltageValue').innerText = latestFeed[`field${voltageField}`] || 'No data';
         document.getElementById('angleValue').innerText = latestFeed[`field${angleField}`] || 'No data';
 
-        // Prepare data for charts
         const timeStamps = feeds.map(feed => new Date(feed.created_at).toLocaleTimeString());
         const speedData = feeds.map(feed => feed[`field${speedField}`]);
         const voltageData = feeds.map(feed => feed[`field${voltageField}`]);
         const angleData = feeds.map(feed => feed[`field${angleField}`]);
 
-        // Update the charts with new data
         updateChart(speedChart, timeStamps, speedData);
         updateChart(voltageChart, timeStamps, voltageData);
         updateChart(angleChart, timeStamps, angleData);
@@ -41,14 +35,12 @@ async function fetchThingSpeakData() {
     }
 }
 
-// Update the charts with new data
 function updateChart(chart, labels, data) {
     chart.data.labels = labels;
     chart.data.datasets[0].data = data;
     chart.update();
 }
 
-// Create charts
 const speedChart = new Chart(document.getElementById('speedChart').getContext('2d'), {
     type: 'line',
     data: {
@@ -132,10 +124,8 @@ function sendAngle() {
     });
 }
 
-// Fetch data every 2 seconds
 setInterval(() => {
     fetchThingSpeakData();
 }, 2000);
 
-// Initial call to load data
 fetchThingSpeakData();

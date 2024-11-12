@@ -1,5 +1,4 @@
 #include <WiFi.h>
-#include <WebServer.h>
 #include <HTTPClient.h>
 
 // Motor Pins
@@ -12,8 +11,8 @@
 #define ENCB 34
 
 // PID Constants
-const float KP = 1.5;
-const float KD = 0.02;
+const float KP = 1.5;  // Reduce proportional term
+const float KD = 0.02;  // Reduce derivative term
 const float KI = 0.1;
 const int MAX_SPEED = 255;
 const int MAX_INTEGRAL = 50;
@@ -28,28 +27,25 @@ struct Motor {
 };
 
 // Global variables for encoder and PID control
-volatile int position = 0;
+volatile int position = 0;  
 long lastTime = 0;
 float previousError = 0;
 float integralError = 0;
+
+// Create a motor instance
 Motor motorA;
 
-// Encoder and motor constants
-const int encoderPPR = 152;
-const float gearRatio = 51.0;
-const long effectivePPR = encoderPPR * gearRatio;
+const int encoderPPR = 152;  
+const float gearRatio = 51.0;  
+const long effectivePPR = encoderPPR * gearRatio;  
 
-// Wi-Fi and ThingSpeak credentials
+// WiFi and ThingSpeak credentials
 const char* ssid = "Esw";
 const char* password = "manian19092006";
-const char* api_key = "QW797Z0YCTEX3IWG";  // ThingSpeak API Key
+const char* api_key = "QW797Z0YCTEX3IWG";
 
-// Target angle
-int targetDegrees = 0;
-int targetPosition = 0;
-
-// Web server instance
-WebServer server(80);
+// URL to fetch angle from your website
+const char* angle_url = "https://manian1909.github.io/esw_snpe_root/angle";  // Adjust if necessary
 
 void setup() {
     Serial.begin(9600);
@@ -61,7 +57,7 @@ void setup() {
     
     attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
     stopMotor();
-
+    
     // Connect to Wi-Fi
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
@@ -69,48 +65,66 @@ void setup() {
         Serial.println("Connecting to WiFi...");
     }
     Serial.println("Connected to WiFi");
-    Serial.print("ESP32 IP Address: ");
-    Serial.println(WiFi.localIP()); // Print ESP32 IP address
-
-    // Configure web server routes
-    server.on("/setAngle", HTTP_POST, handleSetAngle);  // Set angle route
-    server.begin();
-    Serial.println("HTTP server started");
 }
 
 void loop() {
-    server.handleClient();  // Handle incoming HTTP requests
+    // Fetch angle from website
+    int angle = fetchAngleFromWeb();
+    int target = 0;
 
-    if (targetPosition != position) {
-        PIDControl(targetPosition);
+    if (angle != 0) {
+        target = angle * (effectivePPR) / 360.0;
+        while (true) {
+            PIDControl(target);
+            delay(100);
+            if (abs(position - target) < 10) {
+                stopMotor();
+                break;
+            }
+        }
     } else {
-        stopMotor();
+        stopMotor(); 
     }
 
-    delay(100);
+    target = (target * 360.0) / effectivePPR;
+    position = (position * 360.0) / effectivePPR;
+    Serial.print("Angle: "); Serial.print(angle);
+    Serial.print(" Target: "); Serial.print(target);
+    Serial.print(" Position: "); Serial.println(position);
+    uploadDataToThingSpeak(angle, target, position);
+    delay(15000);  // 15 seconds delay between updates
 }
 
-// Function to handle HTTP POST request to set the angle
-void handleSetAngle() {
-    if (server.hasArg("plain")) {
-        String requestBody = server.arg("plain");
-        targetDegrees = requestBody.toInt();
-        targetPosition = targetDegrees * effectivePPR / 360;  // Convert degrees to encoder position
-        server.send(200, "text/plain", "Angle set successfully");
+// Function to fetch angle from website
+int fetchAngleFromWeb() {
+    if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        http.begin(angle_url);  // Specify the URL
+        int httpResponseCode = http.GET();
+        
+        if (httpResponseCode > 0) {
+            String payload = http.getString();
+            Serial.println("Fetched Angle: " + payload);
+            http.end();
+            return payload.toInt();  // Convert the payload to integer
+        } else {
+            Serial.println("Error fetching angle: " + String(httpResponseCode));
+        }
+        http.end();
     } else {
-        server.send(400, "text/plain", "Invalid Request");
+        Serial.println("WiFi not connected.");
     }
+    return 0;  // Default to 0 if fetch fails
 }
 
-// PID control function to reach the target position
 void PIDControl(int target) {
     long currentTime = micros();
     float deltaTime = (currentTime - lastTime) / 1e6;
     lastTime = currentTime;
 
     int currentPosition;
-    noInterrupts();
-    currentPosition = position;
+    noInterrupts(); 
+    currentPosition = position; 
     interrupts();
 
     float error = target - currentPosition;
@@ -125,22 +139,28 @@ void PIDControl(int target) {
     setMotor(motorA, direction, abs(output));
 
     previousError = error;
+
+    Serial.print("Target: ");
+    Serial.print((target * 360.0) / effectivePPR);
+    Serial.print(" Current Position: ");
+    Serial.println((currentPosition * 360.0) / effectivePPR);
 }
 
 void setMotor(Motor &m, int dir, int speed) {
-    // Stop motor before reversing direction
-    if ((dir == 1 && m.direction.input2 == HIGH) || (dir == -1 && m.direction.input1 == HIGH)) {
+    // Stop the motor briefly before reversing direction
+    if ((dir == 1 && m.direction.input2 == HIGH) || 
+        (dir == -1 && m.direction.input1 == HIGH)) {
         stopMotor();
-        delay(200);  // Allow motor to fully stop before reversing
+        delay(200);  // Delay to allow motor to fully stop before reversing
     }
 
-    // Gradual speed ramp-up
+    // Gradual ramp-up to avoid jerks
     int currentSpeed = m.speed;
     int step = (speed > currentSpeed) ? 1 : -1;
     while (currentSpeed != speed) {
         currentSpeed += step;
         setMotorSpeed(m, currentSpeed);
-        delay(5);  // Adjust for smoother changes
+        delay(5);  // Adjust delay for smoother speed changes
     }
 
     if (dir == 1) {
@@ -186,7 +206,7 @@ void setMotorSpeed(Motor &m, int speed) {
     m.speed = speed;
 }
 
-// Upload data to ThingSpeak
+// Function to upload speed, angle, and voltage to ThingSpeak
 void uploadDataToThingSpeak(float speed, float angle, float voltage) {
     if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
